@@ -52,4 +52,19 @@ Blockchain.prototype.hashBlock = function(
   return hash;
 };
 
+//proof of work
+Blockchain.prototype.proofOfWork = function(
+  previousBlockHash,
+  currentBlockData
+) {
+  let nonce = 0;
+  let hash = this.hashBlock(previousBlockHash, currentBlockData, nonce);
+  while (hash.substring(0, 4) !== "0000") {
+    nonce++;
+    hash = this.hashBlock(previousBlockHash, currentBlockData, nonce);
+  }
+
+  return nonce; //we get the correct nonce value. our nonce is the proof of work.
+};
+
 module.exports = Blockchain;
