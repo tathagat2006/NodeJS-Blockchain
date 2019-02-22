@@ -4,6 +4,7 @@ const sha256 = require("sha256");
 function Blockchain() {
   this.chain = []; //mined blocks will be placed here as a chain
   this.pendingTransactions = []; //before mining the blocks will be placed here
+  this.createNewBlock(100, "0", "0");
 }
 
 //creating a new block
