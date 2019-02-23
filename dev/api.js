@@ -14,7 +14,14 @@ app.get("/blockchain", (req, res) => {
 });
 
 //create new transaction
-app.post("/transaction", (req, res) => {});
+app.post("/transaction", (req, res) => {
+  const blockIndex = bitcoin.crateNewTransaction(
+    req.body.amount,
+    req.body.sender,
+    req.body.recipient
+  );
+  res.json({ note: `Transaction will be added to block ${blockIndex}.` });
+});
 
 //mine a new block for us
 app.get("mine", (req, res) => {});
