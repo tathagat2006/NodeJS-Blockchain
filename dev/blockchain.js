@@ -1,9 +1,12 @@
 const sha256 = require("sha256");
+const currentNodeUrl = process.argv[3];
 
 //constructor function
 function Blockchain() {
   this.chain = []; //mined blocks will be placed here as a chain
   this.pendingTransactions = []; //before mining the blocks will be placed here
+  this.currentNodeUrl = currentNodeUrl;
+  this.networkNodes = [];
   this.createNewBlock(100, "0", "0");
 }
 
