@@ -1,13 +1,16 @@
 const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
+const BlockChain = require("./blockchain");
+
+const bitcoin = new BlockChain();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
 //get blockchain
 app.get("/blockchain", (req, res) => {
-  res.send("Hello & Welcome");
+  res.send(bitcoin);
 });
 
 //create new transaction
