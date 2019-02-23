@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const BlockChain = require("./blockchain");
 const uuid = require("uuid/v1");
 const bitcoin = new BlockChain();
+const port = process.argv[2];
 
 const nodeAddress = uuid()
   .split("-")
@@ -49,6 +50,6 @@ app.get("/mine", (req, res) => {
   });
 });
 
-app.listen("3000", () => {
-  console.log("server started at http://localhost:3000");
+app.listen(port, () => {
+  console.log(`server started at http://localhost:${port}...`);
 });
