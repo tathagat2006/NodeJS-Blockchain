@@ -50,6 +50,17 @@ app.get("/mine", (req, res) => {
   });
 });
 
+//register a node and broadcast it to the whole network.
+app.post("/register-and-broadcast-node", (req, res) => {
+  const newNodeUrl = req.body.newNodeUrl;
+});
+
+//register a node with the network
+app.post("/register-node", (req, res) => {});
+
+//register multiple node at once
+app.post("/register-node-bulk", (req, res) => {});
+
 app.listen(port, () => {
   console.log(`server started at http://localhost:${port}...`);
 });
