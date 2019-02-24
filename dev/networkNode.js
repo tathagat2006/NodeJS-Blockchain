@@ -99,7 +99,18 @@ app.post("/register-node", (req, res) => {
 });
 
 //register multiple node at once
-app.post("/register-node-bulk", (req, res) => {});
+app.post("/register-node-bulk", (req, res) => {
+  const allNetworkNodes = req.body.allNetworkNodes;
+  allNetworkNodes.forEach(networkNodeUrl => {
+    const nodeNotAlreadyPresent =
+      bitcoin.networkNodes.indexOf(networkNodeUrl) == -1;
+    const noturrentNode = bitcoin.currentNodeUrl !== networkNodeUrl;
+    if (nodeNotAlreadyPresent && noturrentNode) {
+      bitcoin.networkNodes.push(networkNodeUrl);
+    }
+  });
+  res.json({ note: "Bulk registration successful" });
+});
 
 app.listen(port, () => {
   console.log(`server started at http://localhost:${port}...`);
