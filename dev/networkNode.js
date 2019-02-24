@@ -5,6 +5,7 @@ const BlockChain = require("./blockchain");
 const uuid = require("uuid/v1");
 const bitcoin = new BlockChain();
 const port = process.argv[2];
+const rp = require("request-promise");
 
 const nodeAddress = uuid()
   .split("-")
@@ -53,6 +54,37 @@ app.get("/mine", (req, res) => {
 //register a node and broadcast it to the whole network.
 app.post("/register-and-broadcast-node", (req, res) => {
   const newNodeUrl = req.body.newNodeUrl;
+  if (bitcoin.networkNodes.indexOf == -1) {
+    bitcoin.networkNodes.push(newNodeUrl);
+  }
+  const regNodesPromises = [];
+  bitcoin.networkNodes.forEach(networkNodeUrl => {
+    const requestOptions = {
+      uri: networkNodeUrl + "/register-node",
+      method: "POST",
+      body: {
+        newNodeUrl: newNodeUrl
+      },
+      json: true
+    };
+    regNodesPromises.push(rp(requestOptions)); //here we are pushing the request and not running it... we are running the request below...
+  });
+
+  Promise.all(regNodesPromises)
+    .then(data => {
+      const bulkRegisterOptions = {
+        uri: newNodeUrl + "/register-nodes-bulk",
+        method: "POST",
+        body: {
+          allNetworkNodes: [...bitcoin.networkNodes, bitcoin.currentNodeUrl]
+        },
+        json: true
+      };
+      return rp(bulkRegisterOptions);
+    })
+    .then(data => {
+      res.json({ note: "New Node registered succesfully" });
+    });
 });
 
 //register a node with the network
