@@ -1,6 +1,7 @@
 const sha256 = require("sha256");
 const currentNodeUrl = process.argv[3];
 const uuid = require("uuid/v1");
+// require("./networkNode");
 
 //constructor function
 function Blockchain() {
@@ -33,6 +34,10 @@ Blockchain.prototype.getLastBlock = function() {
   return this.chain[this.chain.length - 1];
 };
 
+//get block using idx
+Blockchain.prototype.getBlock = function(index) {
+  return this.chain[index - 1];
+};
 //creating new/pending transactions to be mined
 Blockchain.prototype.crateNewTransaction = function(amount, sender, recipient) {
   const newTransaction = {

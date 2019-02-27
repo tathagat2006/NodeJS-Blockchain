@@ -3,7 +3,7 @@ const app = express();
 const bodyParser = require("body-parser");
 const BlockChain = require("./blockchain");
 const uuid = require("uuid/v1");
-const bitcoin = new BlockChain();
+const farmbuddy = new BlockChain();
 const port = process.argv[2];
 const rp = require("request-promise");
 
@@ -16,13 +16,13 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 //get blockchain
 app.get("/blockchain", (req, res) => {
-  res.send(bitcoin);
+  res.send(farmbuddy);
 });
 
 // create a new transaction
 app.post("/transaction", function(req, res) {
   const newTransaction = req.body;
-  const blockIndex = bitcoin.addTransactionToPendingTransactions(
+  const blockIndex = farmbuddy.addTransactionToPendingTransactions(
     newTransaction
   );
   res.json({ note: `Transaction will be added in block ${blockIndex}.` });
@@ -30,15 +30,15 @@ app.post("/transaction", function(req, res) {
 
 // broadcast transaction
 app.post("/transaction/broadcast", function(req, res) {
-  const newTransaction = bitcoin.crateNewTransaction(
+  const newTransaction = farmbuddy.crateNewTransaction(
     req.body.amount,
     req.body.sender,
     req.body.recipient
   );
-  bitcoin.addTransactionToPendingTransactions(newTransaction);
+  farmbuddy.addTransactionToPendingTransactions(newTransaction);
 
   const requestPromises = [];
-  bitcoin.networkNodes.forEach(networkNodeUrl => {
+  farmbuddy.networkNodes.forEach(networkNodeUrl => {
     const requestOptions = {
       uri: networkNodeUrl + "/transaction",
       method: "POST",
@@ -56,22 +56,26 @@ app.post("/transaction/broadcast", function(req, res) {
 
 //mine a new block for us
 app.get("/mine", (req, res) => {
-  const lastBlock = bitcoin.getLastBlock();
+  const lastBlock = farmbuddy.getLastBlock();
   const previousBlockHash = lastBlock["hash"];
   const currentBlockData = {
-    transactions: bitcoin.pendingTransactions,
+    transactions: farmbuddy.pendingTransactions,
     index: lastBlock["index"] + 1
   };
-  const nonce = bitcoin.proofOfWork(previousBlockHash, currentBlockData);
-  const blockHash = bitcoin.hashBlock(
+  const nonce = farmbuddy.proofOfWork(previousBlockHash, currentBlockData);
+  const blockHash = farmbuddy.hashBlock(
     previousBlockHash,
     currentBlockData,
     nonce
   );
-  // bitcoin.crateNewTransaction(12.5, "00", nodeAddress); // mining reward
-  const newBlock = bitcoin.createNewBlock(nonce, previousBlockHash, blockHash);
+  // farmbuddy.crateNewTransaction(12.5, "00", nodeAddress); // mining reward
+  const newBlock = farmbuddy.createNewBlock(
+    nonce,
+    previousBlockHash,
+    blockHash
+  );
   const requestPromises = [];
-  bitcoin.networkNodes.forEach(newNodeUrl => {
+  farmbuddy.networkNodes.forEach(newNodeUrl => {
     const requestOptions = {
       uri: networkNodeUrl + "/receive-new-block",
       method: "POST",
@@ -84,7 +88,7 @@ app.get("/mine", (req, res) => {
   Promise.all(requestPromises)
     .then(data => {
       const requestOptions = {
-        uri: bitcoin.currentNodeUrl + "/transaction/broadcast",
+        uri: farmbuddy.currentNodeUrl + "/transaction/broadcast",
         method: "POST",
         body: {
           amount: 12.5,
@@ -106,13 +110,13 @@ app.get("/mine", (req, res) => {
 // receive new block
 app.post("/receive-new-block", function(req, res) {
   const newBlock = req.body.newBlock;
-  const lastBlock = bitcoin.getLastBlock();
+  const lastBlock = farmbuddy.getLastBlock();
   const correctHash = lastBlock.hash === newBlock.previousBlockHash;
   const correctIndex = lastBlock["index"] + 1 === newBlock["index"];
 
   if (correctHash && correctIndex) {
-    bitcoin.chain.push(newBlock);
-    bitcoin.pendingTransactions = [];
+    farmbuddy.chain.push(newBlock);
+    farmbuddy.pendingTransactions = [];
     res.json({
       note: "New block received and accepted.",
       newBlock: newBlock
@@ -128,11 +132,11 @@ app.post("/receive-new-block", function(req, res) {
 // register a node and broadcast it the network
 app.post("/register-and-broadcast-node", function(req, res) {
   const newNodeUrl = req.body.newNodeUrl;
-  if (bitcoin.networkNodes.indexOf(newNodeUrl) == -1)
-    bitcoin.networkNodes.push(newNodeUrl);
+  if (farmbuddy.networkNodes.indexOf(newNodeUrl) == -1)
+    farmbuddy.networkNodes.push(newNodeUrl);
 
   const regNodesPromises = [];
-  bitcoin.networkNodes.forEach(networkNodeUrl => {
+  farmbuddy.networkNodes.forEach(networkNodeUrl => {
     const requestOptions = {
       uri: networkNodeUrl + "/register-node",
       method: "POST",
@@ -149,7 +153,7 @@ app.post("/register-and-broadcast-node", function(req, res) {
         uri: newNodeUrl + "/register-nodes-bulk",
         method: "POST",
         body: {
-          allNetworkNodes: [...bitcoin.networkNodes, bitcoin.currentNodeUrl]
+          allNetworkNodes: [...farmbuddy.networkNodes, farmbuddy.currentNodeUrl]
         },
         json: true
       };
@@ -164,10 +168,11 @@ app.post("/register-and-broadcast-node", function(req, res) {
 // register a node with the network
 app.post("/register-node", function(req, res) {
   const newNodeUrl = req.body.newNodeUrl;
-  const nodeNotAlreadyPresent = bitcoin.networkNodes.indexOf(newNodeUrl) == -1;
-  const notCurrentNode = bitcoin.currentNodeUrl !== newNodeUrl;
+  const nodeNotAlreadyPresent =
+    farmbuddy.networkNodes.indexOf(newNodeUrl) == -1;
+  const notCurrentNode = farmbuddy.currentNodeUrl !== newNodeUrl;
   if (nodeNotAlreadyPresent && notCurrentNode)
-    bitcoin.networkNodes.push(newNodeUrl);
+    farmbuddy.networkNodes.push(newNodeUrl);
   res.json({ note: "New node registered successfully." });
 });
 
@@ -176,10 +181,10 @@ app.post("/register-nodes-bulk", function(req, res) {
   const allNetworkNodes = req.body.allNetworkNodes;
   allNetworkNodes.forEach(networkNodeUrl => {
     const nodeNotAlreadyPresent =
-      bitcoin.networkNodes.indexOf(networkNodeUrl) == -1;
-    const notCurrentNode = bitcoin.currentNodeUrl !== networkNodeUrl;
+      farmbuddy.networkNodes.indexOf(networkNodeUrl) == -1;
+    const notCurrentNode = farmbuddy.currentNodeUrl !== networkNodeUrl;
     if (nodeNotAlreadyPresent && notCurrentNode)
-      bitcoin.networkNodes.push(networkNodeUrl);
+      farmbuddy.networkNodes.push(networkNodeUrl);
   });
 
   res.json({ note: "Bulk registration successful." });
@@ -188,7 +193,7 @@ app.post("/register-nodes-bulk", function(req, res) {
 // consensus
 app.get("/consensus", function(req, res) {
   const requestPromises = [];
-  bitcoin.networkNodes.forEach(networkNodeUrl => {
+  farmbuddy.networkNodes.forEach(networkNodeUrl => {
     const requestOptions = {
       uri: networkNodeUrl + "/blockchain",
       method: "GET",
@@ -199,7 +204,7 @@ app.get("/consensus", function(req, res) {
   });
 
   Promise.all(requestPromises).then(blockchains => {
-    const currentChainLength = bitcoin.chain.length;
+    const currentChainLength = farmbuddy.chain.length;
     let maxChainLength = currentChainLength;
     let newLongestChain = null;
     let newPendingTransactions = null;
@@ -214,21 +219,38 @@ app.get("/consensus", function(req, res) {
 
     if (
       !newLongestChain ||
-      (newLongestChain && !bitcoin.chainIsValid(newLongestChain))
+      (newLongestChain && !farmbuddy.chainIsValid(newLongestChain))
     ) {
       res.json({
         note: "Current chain has not been replaced.",
-        chain: bitcoin.chain
+        chain: farmbuddy.chain
       });
     } else {
-      bitcoin.chain = newLongestChain;
-      bitcoin.pendingTransactions = newPendingTransactions;
+      farmbuddy.chain = newLongestChain;
+      farmbuddy.pendingTransactions = newPendingTransactions;
       res.json({
         note: "This chain has been replaced.",
-        chain: bitcoin.chain
+        chain: farmbuddy.chain
       });
     }
   });
+});
+
+app.post("/getblock", (req, res) => {
+  const id = req.body.id;
+  const desiredBlock = farmbuddy.getBlock(id);
+  // var parsedBlock = JSON.parse(desiredBlock);
+  console.log(desiredBlock);
+  if (desiredBlock === undefined) {
+    res.json({
+      note: "block does not exist"
+    });
+  } else {
+    res.json({
+      note: `Block with index ${id} returned`,
+      desiredBlock
+    });
+  }
 });
 
 app.listen(port, () => {
